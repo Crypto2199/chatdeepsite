@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omni AI - Your Intelligent Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #374151;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #6b7280;
+        }
+        
+        /* Typing animation */
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        .typing-animation {
+            overflow: hidden;
+            white-space: nowrap;
+            animation: typing 1.5s steps(40, end);
+        }
+        
+        /* Pulse animation for loading */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* RTL specific styles */
+        [dir="rtl"] #sidebar {
+            right: 0;
+            left: auto;
+            transform: translateX(100%);
+        }
+        [dir="rtl"] #chat-container {
+            margin-right: 16rem;
+            margin-left: 0;
+        }
+        [dir="rtl"] .flex-row-reverse {
+            flex-direction: row-reverse;
+        }
+        [dir="rtl"] .text-right {
+            text-align: right;
+        }
+        [dir="rtl"] .mr-2 {
+            margin-right: 0;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm py-4 px-6 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary-500 to-primary-700 flex items-center justify-center">
+                    <i class="fas fa-robot text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Omni AI</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="new-chat" class="px-4 py-2 bg-primary-100 dark:bg-gray-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-gray-600 transition">
+                    <i class="fas fa-plus mr-2"></i><span class="new-chat-text">New Chat</span>
+                </button>
+                <button id="language-toggle" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition" title="Toggle Language">
+                    <i class="fas fa-language text-gray-600 dark:text-gray-300"></i>
+                </button>
+                <button id="theme-toggle" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                    <i class="fas fa-moon text-gray-600 dark:text-yellow-300 hidden dark:block"></i>
+                    <i class="fas fa-sun text-yellow-500 dark:text-gray-300 block dark:hidden"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-hidden flex flex-col">
+            <!-- Chat History Sidebar (hidden on mobile) -->
+            <div id="sidebar" class="hidden md:block fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-lg transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-10">
+                <div class="h-full flex flex-col">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white chat-history-title">Chat History</h2>
+                    </div>
+                    <div id="chat-history" class="flex-1 overflow-y-auto p-2 space-y-2">
+                        <!-- Chat history items will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:ml-64">
+                <div class="max-w-3xl mx-auto space-y-6">
+                    <!-- Welcome message -->
+                    <div class="text-center py-10 welcome-message">
+                        <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-primary-500 to-primary-700 flex items-center justify-center mb-4">
+                            <i class="fas fa-robot text-white text-3xl"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-2">Welcome to Omni AI</h2>
+                        <p class="text-gray-600 dark:text-gray-300 max-w-lg mx-auto">Ask me anything, from creative ideas to technical explanations. I'm here to help!</p>
+                    </div>
+
+                    <!-- Sample prompts -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 prompt-container">
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <h3 class="font-medium text-gray-800 dark:text-white mb-2">Explain quantum computing</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">In simple terms that a beginner could understand</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <h3 class="font-medium text-gray-800 dark:text-white mb-2">Suggest team-building activities</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">For a remote team of 10 people</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <h3 class="font-medium text-gray-800 dark:text-white mb-2">Write a poem</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">About artificial intelligence in the style of Shakespeare</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <h3 class="font-medium text-gray-800 dark:text-white mb-2">Help me debug this code</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">I'm getting an unexpected error in my Python script</p>
+                        </div>
+                    </div>
+
+                    <!-- Chat messages will be appended here -->
+                    <div id="chat-messages" class="space-y-6"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Input Area -->
+        <div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
+            <div class="max-w-3xl mx-auto relative">
+                <div class="flex items-center">
+                    <button id="sidebar-toggle" class="md:hidden mr-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="flex-1 relative">
+                        <textarea id="user-input" rows="1" class="w-full p-4 pr-12 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-none focus:ring-2 focus:ring-primary-500 resize-none" placeholder="Message Omni AI..." style="min-height: 60px;"></textarea>
+                        <button id="send-button" class="absolute right-3 bottom-3 p-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center disclaimer-text">Omni AI may produce inaccurate information. Consider checking important information.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const themeToggle = document.getElementById('theme-toggle');
+        const languageToggle = document.getElementById('language-toggle');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const newChatBtn = document.getElementById('new-chat');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatContainer = document.getElementById('chat-container');
+        const chatHistory = document.getElementById('chat-history');
+        const welcomeMessage = document.querySelector('.welcome-message');
+        const promptContainer = document.querySelector('.prompt-container');
+
+        // Chat state management
+        let chatState = {
+            currentChatId: generateChatId(),
+            messages: [],
+            history: loadChatHistory()
+        };
+
+        // Initialize the app
+        initApp();
+
+        function initApp() {
+            // Theme management
+            initTheme();
+            
+            // Load chat history
+            renderChatHistory();
+            
+            // Set initial language
+            initLanguage();
+            
+            // Event listeners
+            setupEventListeners();
+            
+            // Focus on input
+            userInput.focus();
+            
+            // Add welcome message
+            addWelcomeMessage();
+        }
+
+        function generateChatId() {
+            return 'chat-' + Date.now();
+        }
+
+        function initTheme() {
+            if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        function initLanguage() {
+            currentLanguage = localStorage.getItem('language') || 'en';
+            document.documentElement.lang = currentLanguage;
+            if (currentLanguage === 'ar') {
+                document.documentElement.dir = 'rtl';
+            } else {
+                document.documentElement.dir = 'ltr';
+            }
+            updateTexts();
+        }
+
+        function setupEventListeners() {
+            // Theme toggle
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            });
+
+            // Sidebar toggle for mobile
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+            });
+
+            // Auto-resize textarea
+            userInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+                sendButton.disabled = this.value.trim() === '';
+            });
+
+            // New chat button
+            newChatBtn.addEventListener('click', startNewChat);
+
+            // Send message on button click
+            sendButton.addEventListener('click', sendMessage);
+            
+            // Send message on Enter key (without Shift)
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Language toggle
+            languageToggle.addEventListener('click', toggleLanguage);
+
+            // Prompt click handlers
+            document.querySelectorAll('.prompt-container > div').forEach(prompt => {
+                prompt.addEventListener('click', () => {
+                    const text = prompt.querySelector('h3').textContent;
+                    userInput.value = text;
+                    userInput.focus();
+                    userInput.dispatchEvent(new Event('input'));
+                });
+            });
+        }
+
+        function startNewChat() {
+            // Save current chat to history if not empty
+            if (chatState.messages.length > 0) {
+                saveChatToHistory();
+            }
+            
+            // Reset chat state
+            chatState.currentChatId = generateChatId();
+            chatState.messages = [];
+            
+            // Clear UI
+            chatMessages.innerHTML = '';
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            sendButton.disabled = true;
+            
+            // Show welcome message and prompts
+            welcomeMessage.classList.remove('hidden');
+            promptContainer.classList.remove('hidden');
+            
+            // Add new welcome message
+            addWelcomeMessage();
+            
+            // Update chat history
+            renderChatHistory();
+            
+            // Focus on input
+            userInput.focus();
+        }
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message || message.length > 2000) {
+                return;
+            }
+
+            // Hide welcome message and prompts when user starts chatting
+            welcomeMessage.classList.add('hidden');
+            promptContainer.classList.add('hidden');
+
+            // Add user message to chat
+            addMessage('user', message);
+            chatState.messages.push({
+                role: 'user',
+                content: message,
+                timestamp: new Date().toISOString()
+            });
+            
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            sendButton.disabled = true;
+
+            // Show typing indicator
+            const typingId = showTypingIndicator();
+
+            // Scroll to bottom
+            scrollToBottom();
+
+            // Simulate AI response (replace with actual API call)
+            simulateAIResponse(message, typingId)
+                .then(() => {
+                    // Save chat to history after response
+                    saveChatToHistory();
+                    renderChatHistory();
+                });
+        }
+
+        function simulateAIResponse(message, typingId) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Remove typing indicator
+                    removeTypingIndicator(typingId);
+                    
+                    let response;
+                    const lowerMessage = message.toLowerCase();
+                    
+                    // Check if Arabic is requested
+                    if (currentLanguage === 'ar' || lowerMessage.includes('بالعربية') || lowerMessage.includes('arabic')) {
+                        if (lowerMessage.includes('كمبيوتر كمي') || lowerMessage.includes('حوسبة كمومية')) {
+                            response = "الحوسبة الكمومية هي مجال متقدم يستخدم مبادئ ميكانيكا الكم لحل مشاكل معقدة بشكل أسرع من الحواسيب التقليدية. تعتمد على الكيوبتات التي يمكن أن تكون في حالات متعددة في نفس الوقت (التراكب الكمي).";
+                        } else if (lowerMessage.includes('فريق') || lowerMessage.includes('بناء فريق')) {
+                            response = "للفريق البعيد، أقترح: 1) جلسات تعريف افتراضية، 2) ألعاب تعاونية عبر الإنترنت، 3) تحديات أسبوعية، 4) لقاءات افتراضية غير رسمية.";
+                        } else if (lowerMessage.includes('قصيدة') || lowerMessage.includes('شعر')) {
+                            response = "في عالم الذكاء الاصطناعي العميق،\nحيث الأفكار تتدفق كالنهر العظيم،\nأرى المستقبل يلوح كالحلم،\nبين سطور من الكود والمنطق الحكيم.";
+                        } else if (lowerMessage.includes('كود') || lowerMessage.includes('برمجة')) {
+                            response = "لتصحيح الأخطاء في بايثون:\n1) تحقق من رسالة الخطأ\n2) ابحث عن الخطأ في السطر المحدد\n3) تأكد من المتغيرات والمسافات البادئة\n4) استخدم print() لفحص القيم";
+                        } else {
+                            response = "مرحبًا! كيف يمكنني مساعدتك بشكل محدد اليوم؟ يرجى تقديم المزيد من التفاصيل عن سؤالك.";
+                        }
+                    } else {
+                        // English responses
+                        if (lowerMessage.includes('quantum') || lowerMessage.includes('computing')) {
+                            response = "Quantum computing is an advanced field that uses quantum mechanics principles to solve complex problems faster than classical computers. It relies on qubits that can exist in multiple states simultaneously (quantum superposition).";
+                        } else if (lowerMessage.includes('team') || lowerMessage.includes('building')) {
+                            response = "For a remote team, I suggest:\n1) Virtual onboarding sessions\n2) Online collaborative games\n3) Weekly challenges\n4) Informal virtual coffee chats";
+                        } else if (lowerMessage.includes('poem') || lowerMessage.includes('verse')) {
+                            response = "In realms of AI so deep and wise,\nWhere thoughts like rivers flow,\nI see the future's shape arise,\nIn codes that make it glow.";
+                        } else if (lowerMessage.includes('code') || lowerMessage.includes('debug')) {
+                            response = "To debug Python code:\n1) Read the error message\n2) Check the indicated line\n3) Verify variables and indentation\n4) Use print() to inspect values";
+                        } else {
+                            response = "Hello! How can I specifically assist you today? Please provide more details about your question.";
+                        }
+                    }
+                    
+                    // Add AI response to chat
+                    addMessage('assistant', response);
+                    chatState.messages.push({
+                        role: 'assistant',
+                        content: response,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    // Scroll to bottom
+                    scrollToBottom();
+                    
+                    resolve();
+                }, 1500);
+            });
+        }
+
+        function addMessage(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = `max-w-[80%] rounded-xl p-4 ${role === 'user' ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`;
+            
+            // Format content with line breaks and basic markdown support
+            let formattedContent = content
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code class="bg-gray-300 dark:bg-gray-600 px-1 py-0.5 rounded">$1</code>');
+            
+            bubble.innerHTML = formattedContent;
+            
+            messageDiv.appendChild(bubble);
+            chatMessages.appendChild(messageDiv);
+        }
+
+        function showTypingIndicator() {
+            const typingId = 'typing-' + Date.now();
+            const typingDiv = document.createElement('div');
+            typingDiv.id = typingId;
+            typingDiv.className = 'flex justify-start';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl p-4 max-w-[80%]';
+            
+            // Add typing animation dots
+            bubble.innerHTML = `
+                <div class="flex space-x-1">
+                    <div class="w-2 h-2 rounded-full bg-gray-400 animate-pulse" style="animation-delay: 0ms"></div>
+                    <div class="w-2 h-2 rounded-full bg-gray-400 animate-pulse" style="animation-delay: 300ms"></div>
+                    <div class="w-2 h-2 rounded-full bg-gray-400 animate-pulse" style="animation-delay: 600ms"></div>
+                </div>
+            `;
+            
+            typingDiv.appendChild(bubble);
+            chatMessages.appendChild(typingDiv);
+            
+            return typingId;
+        }
+
+        function removeTypingIndicator(id) {
+            const typingElement = document.getElementById(id);
+            if (typingElement) {
+                typingElement.remove();
+            }
+        }
+
+        function scrollToBottom() {
+            chatContainer.scrollTo({
+                top: chatContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
+            document.documentElement.lang = currentLanguage;
+            document.documentElement.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
+            localStorage.setItem('language', currentLanguage);
+            updateTexts();
+            
+            // Start new chat when language changes
+            startNewChat();
+        }
+
+        // Language management
+        const translations = {
+            en: {
+                title: "Omni AI",
+                welcome: "Welcome to Omni AI",
+                description: "Ask me anything, from creative ideas to technical explanations. I'm here to help!",
+                newChat: "New Chat",
+                chatHistory: "Chat History",
+                gettingStarted: "Getting started with Omni AI",
+                placeholder: "Message Omni AI...",
+                disclaimer: "Omni AI may produce inaccurate information. Consider checking important information.",
+                prompts: [
+                    "Explain quantum computing",
+                    "Suggest team-building activities",
+                    "Write a poem",
+                    "Help me debug this code"
+                ],
+                promptSubtexts: [
+                    "In simple terms that a beginner could understand",
+                    "For a remote team of 10 people",
+                    "About artificial intelligence in the style of Shakespeare",
+                    "I'm getting an unexpected error in my Python script"
+                ]
+            },
+            ar: {
+                title: "أومني الذكاء الاصطناعي",
+                welcome: "مرحبًا بكم في أومني الذكاء الاصطناعي",
+                description: "اسألني أي شيء، من الأفكار الإبداعية إلى الشروحات التقنية. أنا هنا للمساعدة!",
+                newChat: "محادثة جديدة",
+                chatHistory: "سجل المحادثات",
+                gettingStarted: "البدء مع أومني الذكاء الاصطناعي",
+                placeholder: "رسالة إلى أومني الذكاء الاصطناعي...",
+                disclaimer: "قد ينتج أومني الذكاء الاصطناعي معلومات غير دقيقة. يرجى التحقق من المعلومات المهمة.",
+                prompts: [
+                    "اشرح الحوسبة الكمومية",
+                    "اقترح أنشطة لبناء الفريق",
+                    "اكتب قصيدة",
+                    "ساعدني في تصحيح هذا الكود"
+                ],
+                promptSubtexts: [
+                    "بمصطلحات بسيطة يمكن للمبتدئين فهمها",
+                    "لفريق عن بعد مكون من 10 أشخاص",
+                    "حول الذكاء الاصطناعي على غرار شكسبير",
+                    "أواجه خطأ غير متوقع في سكريبت بايثون الخاص بي"
+                ]
+            }
+        };
+
+        function updateTexts() {
+            const lang = translations[currentLanguage];
+            
+            // Update UI elements
+            document.querySelector('h1').textContent = lang.title;
+            document.querySelector('.new-chat-text').textContent = lang.newChat;
+            document.querySelector('.chat-history-title').textContent = lang.chatHistory;
+            document.querySelector('.welcome-message h2').textContent = lang.welcome;
+            document.querySelector('.welcome-message p').textContent = lang.description;
+            document.querySelector('#user-input').placeholder = lang.placeholder;
+            document.querySelector('.disclaimer-text').textContent = lang.disclaimer;
+
+            // Update prompt cards
+            const promptCards = document.querySelectorAll('.prompt-container > div');
+            promptCards.forEach((card, index) => {
+                card.querySelector('h3').textContent = lang.prompts[index];
+                card.querySelector('p').textContent = lang.promptSubtexts[index];
+            });
+        }
+
+        function addWelcomeMessage() {
+            const welcomeMessage = currentLanguage === 'ar' ? 
+                'مرحبًا! أنا مساعد الذكاء الاصطناعي أومني. كيف يمكنني مساعدتك اليوم؟' :
+                'Hello! I am Omni AI assistant. How can I help you today with specific, accurate information?';
+            
+            addMessage('assistant', welcomeMessage);
+            chatState.messages.push({
+                role: 'assistant',
+                content: welcomeMessage,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        function loadChatHistory() {
+            try {
+                const history = localStorage.getItem('omni-ai-chat-history');
+                return history ? JSON.parse(history) : [];
+            } catch (e) {
+                console.error('Failed to load chat history', e);
+                return [];
+            }
+        }
+
+        function saveChatToHistory() {
+            if (chatState.messages.length === 0) return;
+            
+            const chatTitle = chatState.messages.find(m => m.role === 'user')?.content || 'New Chat';
+            const chatPreview = chatTitle.length > 30 ? chatTitle.substring(0, 30) + '...' : chatTitle;
+            
+            const chatEntry = {
+                id: chatState.currentChatId,
+                title: chatPreview,
+                timestamp: new Date().toISOString(),
+                messages: [...chatState.messages]
+            };
+            
+            // Remove existing chat with same ID if exists
+            chatState.history = chatState.history.filter(chat => chat.id !== chatState.currentChatId);
+            
+            // Add new chat to history (limit to 20 most recent)
+            chatState.history.unshift(chatEntry);
+            chatState.history = chatState.history.slice(0, 20);
+            
+            // Save to localStorage
+            localStorage.setItem('omni-ai-chat-history', JSON.stringify(chatState.history));
+        }
+
+        function renderChatHistory() {
+            chatHistory.innerHTML = '';
+            
+            chatState.history.forEach(chat => {
+                const chatItem = document.createElement('div');
+                chatItem.className = 'chat-history-item px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition';
+                chatItem.innerHTML = `
+                    <p class="truncate">${chat.title}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${formatDate(chat.timestamp)}</p>
+                `;
+                
+                chatItem.addEventListener('click', () => loadChat(chat.id));
+                chatHistory.appendChild(chatItem);
+            });
+            
+            // Add "New Chat" item at the top
+            const newChatItem = document.createElement('div');
+            newChatItem.className = 'chat-history-item px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition';
+            newChatItem.innerHTML = `
+                <p class="truncate">${translations[currentLanguage].gettingStarted}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">${formatDate(new Date().toISOString())}</p>
+            `;
+            
+            newChatItem.addEventListener('click', startNewChat);
+            chatHistory.insertBefore(newChatItem, chatHistory.firstChild);
+        }
+
+        function loadChat(chatId) {
+            const chat = chatState.history.find(c => c.id === chatId);
+            if (!chat) return;
+            
+            // Save current chat if not empty
+            if (chatState.messages.length > 0 && chatState.currentChatId !== chatId) {
+                saveChatToHistory();
+            }
+            
+            // Load the selected chat
+            chatState.currentChatId = chatId;
+            chatState.messages = [...chat.messages];
+            
+            // Render messages
+            chatMessages.innerHTML = '';
+            chat.messages.forEach(msg => addMessage(msg.role, msg.content));
+            
+            // Hide welcome message and prompts
+            welcomeMessage.classList.add('hidden');
+            promptContainer.classList.add('hidden');
+            
+            // Scroll to bottom
+            scrollToBottom();
+            
+            // Update chat history UI
+            renderChatHistory();
+            
+            // Focus on input
+            userInput.focus();
+        }
+
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffInHours = Math.abs(now - date) / 36e5;
+            
+            if (diffInHours < 1) {
+                return currentLanguage === 'ar' ? 'الآن' : 'Just now';
+            } else if (diffInHours < 24) {
+                return currentLanguage === 'ar' ? 
+                    `${Math.floor(diffInHours)} ساعة مضت` : 
+                    `${Math.floor(diffInHours)} hours ago`;
+            } else {
+                return date.toLocaleDateString(currentLanguage, {
+                    month: 'short',
+                    day: 'numeric'
+                });
+            }
+        }
+    </script>
+</body>
+</html>
