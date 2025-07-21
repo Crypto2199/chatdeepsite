@@ -74,27 +74,6 @@
         .animate-pulse {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-
-        /* RTL specific styles */
-        [dir="rtl"] #sidebar {
-            right: 0;
-            left: auto;
-            transform: translateX(100%);
-        }
-        [dir="rtl"] #chat-container {
-            margin-right: 16rem;
-            margin-left: 0;
-        }
-        [dir="rtl"] .flex-row-reverse {
-            flex-direction: row-reverse;
-        }
-        [dir="rtl"] .text-right {
-            text-align: right;
-        }
-        [dir="rtl"] .mr-2 {
-            margin-right: 0;
-            margin-left: 0.5rem;
-        }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
@@ -127,10 +106,14 @@
             <div id="sidebar" class="hidden md:block fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-lg transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-10">
                 <div class="h-full flex flex-col">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white chat-history-title">Chat History</h2>
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Chat History</h2>
                     </div>
                     <div id="chat-history" class="flex-1 overflow-y-auto p-2 space-y-2">
                         <!-- Chat history items will be added here dynamically -->
+                        <div class="chat-history-item px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600">
+                            <p class="truncate">Getting started with Omni AI</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Just now</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -139,7 +122,7 @@
             <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:ml-64">
                 <div class="max-w-3xl mx-auto space-y-6">
                     <!-- Welcome message -->
-                    <div class="text-center py-10 welcome-message">
+                    <div class="text-center py-10">
                         <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-primary-500 to-primary-700 flex items-center justify-center mb-4">
                             <i class="fas fa-robot text-white text-3xl"></i>
                         </div>
@@ -148,7 +131,7 @@
                     </div>
 
                     <!-- Sample prompts -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 prompt-container">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
                         <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                             <h3 class="font-medium text-gray-800 dark:text-white mb-2">Explain quantum computing</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400">In simple terms that a beginner could understand</p>
@@ -187,7 +170,7 @@
                         </button>
                     </div>
                 </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center disclaimer-text">Omni AI may produce inaccurate information. Consider checking important information.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">Omni AI may produce inaccurate information. Consider checking important information.</p>
             </div>
         </div>
     </div>
@@ -204,160 +187,46 @@
         const chatMessages = document.getElementById('chat-messages');
         const chatContainer = document.getElementById('chat-container');
         const chatHistory = document.getElementById('chat-history');
-        const welcomeMessage = document.querySelector('.welcome-message');
-        const promptContainer = document.querySelector('.prompt-container');
 
-        // Chat state management
-        let chatState = {
-            currentChatId: generateChatId(),
-            messages: [],
-            history: loadChatHistory()
-        };
-
-        // Initialize the app
-        initApp();
-
-        function initApp() {
-            // Theme management
-            initTheme();
-            
-            // Load chat history
-            renderChatHistory();
-            
-            // Set initial language
-            initLanguage();
-            
-            // Event listeners
-            setupEventListeners();
-            
-            // Focus on input
-            userInput.focus();
-            
-            // Add welcome message
-            addWelcomeMessage();
+        // Theme management
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
         }
 
-        function generateChatId() {
-            return 'chat-' + Date.now();
-        }
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
 
-        function initTheme() {
-            if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        }
+        // Sidebar toggle for mobile
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
 
-        function initLanguage() {
-            currentLanguage = localStorage.getItem('language') || 'en';
-            document.documentElement.lang = currentLanguage;
-            if (currentLanguage === 'ar') {
-                document.documentElement.dir = 'rtl';
-            } else {
-                document.documentElement.dir = 'ltr';
-            }
-            updateTexts();
-        }
+        // Auto-resize textarea
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
 
-        function setupEventListeners() {
-            // Theme toggle
-            themeToggle.addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-            });
-
-            // Sidebar toggle for mobile
-            sidebarToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-            });
-
-            // Auto-resize textarea
-            userInput.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = (this.scrollHeight) + 'px';
-                sendButton.disabled = this.value.trim() === '';
-            });
-
-            // New chat button
-            newChatBtn.addEventListener('click', startNewChat);
-
-            // Send message on button click
-            sendButton.addEventListener('click', sendMessage);
-            
-            // Send message on Enter key (without Shift)
-            userInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-
-            // Language toggle
-            languageToggle.addEventListener('click', toggleLanguage);
-
-            // Prompt click handlers
-            document.querySelectorAll('.prompt-container > div').forEach(prompt => {
-                prompt.addEventListener('click', () => {
-                    const text = prompt.querySelector('h3').textContent;
-                    userInput.value = text;
-                    userInput.focus();
-                    userInput.dispatchEvent(new Event('input'));
-                });
-            });
-        }
-
-        function startNewChat() {
-            // Save current chat to history if not empty
-            if (chatState.messages.length > 0) {
-                saveChatToHistory();
-            }
-            
-            // Reset chat state
-            chatState.currentChatId = generateChatId();
-            chatState.messages = [];
-            
-            // Clear UI
+        // New chat button
+        newChatBtn.addEventListener('click', () => {
             chatMessages.innerHTML = '';
             userInput.value = '';
-            userInput.style.height = 'auto';
-            sendButton.disabled = true;
-            
-            // Show welcome message and prompts
-            welcomeMessage.classList.remove('hidden');
-            promptContainer.classList.remove('hidden');
-            
-            // Add new welcome message
-            addWelcomeMessage();
-            
-            // Update chat history
-            renderChatHistory();
-            
-            // Focus on input
             userInput.focus();
-        }
+        });
 
+        // Send message function
         function sendMessage() {
             const message = userInput.value.trim();
-            if (!message || message.length > 2000) {
-                return;
-            }
-
-            // Hide welcome message and prompts when user starts chatting
-            welcomeMessage.classList.add('hidden');
-            promptContainer.classList.add('hidden');
+            if (!message) return;
 
             // Add user message to chat
             addMessage('user', message);
-            chatState.messages.push({
-                role: 'user',
-                content: message,
-                timestamp: new Date().toISOString()
-            });
-            
             userInput.value = '';
             userInput.style.height = 'auto';
-            sendButton.disabled = true;
 
             // Show typing indicator
             const typingId = showTypingIndicator();
@@ -365,68 +234,58 @@
             // Scroll to bottom
             scrollToBottom();
 
-            // Simulate AI response (replace with actual API call)
-            simulateAIResponse(message, typingId)
-                .then(() => {
-                    // Save chat to history after response
-                    saveChatToHistory();
-                    renderChatHistory();
-                });
+            // TODO: Replace with your actual API call
+            // This is where you would integrate your AI API
+            simulateAIResponse(message, typingId);
         }
 
+        // Simulate AI response (replace with actual API call)
         function simulateAIResponse(message, typingId) {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    // Remove typing indicator
-                    removeTypingIndicator(typingId);
-                    
-                    let response;
-                    const lowerMessage = message.toLowerCase();
-                    
-                    // Check if Arabic is requested
-                    if (currentLanguage === 'ar' || lowerMessage.includes('بالعربية') || lowerMessage.includes('arabic')) {
-                        if (lowerMessage.includes('كمبيوتر كمي') || lowerMessage.includes('حوسبة كمومية')) {
-                            response = "الحوسبة الكمومية هي مجال متقدم يستخدم مبادئ ميكانيكا الكم لحل مشاكل معقدة بشكل أسرع من الحواسيب التقليدية. تعتمد على الكيوبتات التي يمكن أن تكون في حالات متعددة في نفس الوقت (التراكب الكمي).";
-                        } else if (lowerMessage.includes('فريق') || lowerMessage.includes('بناء فريق')) {
-                            response = "للفريق البعيد، أقترح: 1) جلسات تعريف افتراضية، 2) ألعاب تعاونية عبر الإنترنت، 3) تحديات أسبوعية، 4) لقاءات افتراضية غير رسمية.";
-                        } else if (lowerMessage.includes('قصيدة') || lowerMessage.includes('شعر')) {
-                            response = "في عالم الذكاء الاصطناعي العميق،\nحيث الأفكار تتدفق كالنهر العظيم،\nأرى المستقبل يلوح كالحلم،\nبين سطور من الكود والمنطق الحكيم.";
-                        } else if (lowerMessage.includes('كود') || lowerMessage.includes('برمجة')) {
-                            response = "لتصحيح الأخطاء في بايثون:\n1) تحقق من رسالة الخطأ\n2) ابحث عن الخطأ في السطر المحدد\n3) تأكد من المتغيرات والمسافات البادئة\n4) استخدم print() لفحص القيم";
-                        } else {
-                            response = "مرحبًا! كيف يمكنني مساعدتك بشكل محدد اليوم؟ يرجى تقديم المزيد من التفاصيل عن سؤالك.";
-                        }
+            // Simulate API delay
+            setTimeout(() => {
+                // Remove typing indicator
+                removeTypingIndicator(typingId);
+                
+                let response;
+                const lowerMessage = message.toLowerCase();
+                
+                // Check if Arabic is requested
+                if (currentLanguage === 'ar' || lowerMessage.includes('بالعربية') || lowerMessage.includes('arabic')) {
+                    if (lowerMessage.includes('كمبيوتر كمي') || lowerMessage.includes('حوسبة كمومية')) {
+                        response = "الحوسبة الكمومية هي مجال متقدم يستخدم مبادئ ميكانيكا الكم لحل مشاكل معقدة بشكل أسرع من الحواسيب التقليدية. تعتمد على الكيوبتات التي يمكن أن تكون في حالات متعددة في نفس الوقت (التراكب الكمي).";
+                    } else if (lowerMessage.includes('فريق') || lowerMessage.includes('بناء فريق')) {
+                        response = "للفريق البعيد، أقترح: 1) جلسات تعريف افتراضية، 2) ألعاب تعاونية عبر الإنترنت، 3) تحديات أسبوعية، 4) لقاءات افتراضية غير رسمية.";
+                    } else if (lowerMessage.includes('قصيدة') || lowerMessage.includes('شعر')) {
+                        response = "في عالم الذكاء الاصطناعي العميق،\nحيث الأفكار تتدفق كالنهر العظيم،\nأرى المستقبل يلوح كالحلم،\nبين سطور من الكود والمنطق الحكيم.";
+                    } else if (lowerMessage.includes('كود') || lowerMessage.includes('برمجة')) {
+                        response = "لتصحيح الأخطاء في بايثون:\n1) تحقق من رسالة الخطأ\n2) ابحث عن الخطأ في السطر المحدد\n3) تأكد من المتغيرات والمسافات البادئة\n4) استخدم print() لفحص القيم";
                     } else {
-                        // English responses
-                        if (lowerMessage.includes('quantum') || lowerMessage.includes('computing')) {
-                            response = "Quantum computing is an advanced field that uses quantum mechanics principles to solve complex problems faster than classical computers. It relies on qubits that can exist in multiple states simultaneously (quantum superposition).";
-                        } else if (lowerMessage.includes('team') || lowerMessage.includes('building')) {
-                            response = "For a remote team, I suggest:\n1) Virtual onboarding sessions\n2) Online collaborative games\n3) Weekly challenges\n4) Informal virtual coffee chats";
-                        } else if (lowerMessage.includes('poem') || lowerMessage.includes('verse')) {
-                            response = "In realms of AI so deep and wise,\nWhere thoughts like rivers flow,\nI see the future's shape arise,\nIn codes that make it glow.";
-                        } else if (lowerMessage.includes('code') || lowerMessage.includes('debug')) {
-                            response = "To debug Python code:\n1) Read the error message\n2) Check the indicated line\n3) Verify variables and indentation\n4) Use print() to inspect values";
-                        } else {
-                            response = "Hello! How can I specifically assist you today? Please provide more details about your question.";
-                        }
+                        response = "مرحبًا! كيف يمكنني مساعدتك بشكل محدد اليوم؟ يرجى تقديم المزيد من التفاصيل عن سؤالك.";
                     }
-                    
-                    // Add AI response to chat
-                    addMessage('assistant', response);
-                    chatState.messages.push({
-                        role: 'assistant',
-                        content: response,
-                        timestamp: new Date().toISOString()
-                    });
-                    
-                    // Scroll to bottom
-                    scrollToBottom();
-                    
-                    resolve();
-                }, 1500);
-            });
+                } else {
+                    // English responses
+                    if (lowerMessage.includes('quantum') || lowerMessage.includes('computing')) {
+                        response = "Quantum computing is an advanced field that uses quantum mechanics principles to solve complex problems faster than classical computers. It relies on qubits that can exist in multiple states simultaneously (quantum superposition).";
+                    } else if (lowerMessage.includes('team') || lowerMessage.includes('building')) {
+                        response = "For a remote team, I suggest:\n1) Virtual onboarding sessions\n2) Online collaborative games\n3) Weekly challenges\n4) Informal virtual coffee chats";
+                    } else if (lowerMessage.includes('poem') || lowerMessage.includes('verse')) {
+                        response = "In realms of AI so deep and wise,\nWhere thoughts like rivers flow,\nI see the future's shape arise,\nIn codes that make it glow.";
+                    } else if (lowerMessage.includes('code') || lowerMessage.includes('debug')) {
+                        response = "To debug Python code:\n1) Read the error message\n2) Check the indicated line\n3) Verify variables and indentation\n4) Use print() to inspect values";
+                    } else {
+                        response = "Hello! How can I specifically assist you today? Please provide more details about your question.";
+                    }
+                }
+                
+                // Add AI response to chat
+                addMessage('assistant', response);
+                
+                // Scroll to bottom
+                scrollToBottom();
+            }, 1500);
         }
 
+        // Add message to chat
         function addMessage(role, content) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
@@ -434,19 +293,15 @@
             const bubble = document.createElement('div');
             bubble.className = `max-w-[80%] rounded-xl p-4 ${role === 'user' ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`;
             
-            // Format content with line breaks and basic markdown support
-            let formattedContent = content
-                .replace(/\n/g, '<br>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code class="bg-gray-300 dark:bg-gray-600 px-1 py-0.5 rounded">$1</code>');
-            
+            // Format content with line breaks
+            const formattedContent = content.replace(/\n/g, '<br>');
             bubble.innerHTML = formattedContent;
             
             messageDiv.appendChild(bubble);
             chatMessages.appendChild(messageDiv);
         }
 
+        // Show typing indicator
         function showTypingIndicator() {
             const typingId = 'typing-' + Date.now();
             const typingDiv = document.createElement('div');
@@ -471,6 +326,7 @@
             return typingId;
         }
 
+        // Remove typing indicator
         function removeTypingIndicator(id) {
             const typingElement = document.getElementById(id);
             if (typingElement) {
@@ -478,6 +334,7 @@
             }
         }
 
+        // Scroll to bottom of chat
         function scrollToBottom() {
             chatContainer.scrollTo({
                 top: chatContainer.scrollHeight,
@@ -485,16 +342,20 @@
             });
         }
 
-        function toggleLanguage() {
-            currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
-            document.documentElement.lang = currentLanguage;
-            document.documentElement.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
-            localStorage.setItem('language', currentLanguage);
-            updateTexts();
-            
-            // Start new chat when language changes
-            startNewChat();
-        }
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Enable/disable send button based on input
+        userInput.addEventListener('input', () => {
+            sendButton.disabled = userInput.value.trim() === '';
+        });
 
         // Language management
         const translations = {
@@ -544,149 +405,107 @@
             }
         };
 
+        // Set initial language
+        let currentLanguage = localStorage.getItem('language') || 'en';
+        document.documentElement.lang = currentLanguage;
+        if (currentLanguage === 'ar') {
+            document.documentElement.dir = 'rtl';
+        } else {
+            document.documentElement.dir = 'ltr';
+        }
+        updateTexts();
+
+        // Language toggle
+        languageToggle.addEventListener('click', () => {
+            currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
+            document.documentElement.lang = currentLanguage;
+            document.documentElement.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
+            localStorage.setItem('language', currentLanguage);
+            updateTexts();
+            
+            // Reset chat when language changes
+            chatMessages.innerHTML = '';
+            addWelcomeMessage();
+        });
+
+        // Update all texts based on current language
         function updateTexts() {
             const lang = translations[currentLanguage];
-            
-            // Update UI elements
             document.querySelector('h1').textContent = lang.title;
             document.querySelector('.new-chat-text').textContent = lang.newChat;
-            document.querySelector('.chat-history-title').textContent = lang.chatHistory;
-            document.querySelector('.welcome-message h2').textContent = lang.welcome;
-            document.querySelector('.welcome-message p').textContent = lang.description;
+            document.querySelector('#chat-history .chat-history-item p:first-child').textContent = lang.gettingStarted;
+            document.querySelector('#chat-container h2').textContent = lang.welcome;
+            document.querySelector('#chat-container p').textContent = lang.description;
             document.querySelector('#user-input').placeholder = lang.placeholder;
-            document.querySelector('.disclaimer-text').textContent = lang.disclaimer;
+            document.querySelector('.border-t p').textContent = lang.disclaimer;
 
             // Update prompt cards
-            const promptCards = document.querySelectorAll('.prompt-container > div');
+            const promptCards = document.querySelectorAll('.grid > div');
             promptCards.forEach((card, index) => {
                 card.querySelector('h3').textContent = lang.prompts[index];
                 card.querySelector('p').textContent = lang.promptSubtexts[index];
             });
         }
 
+        // Add welcome message based on language
         function addWelcomeMessage() {
-            const welcomeMessage = currentLanguage === 'ar' ? 
-                'مرحبًا! أنا مساعد الذكاء الاصطناعي أومني. كيف يمكنني مساعدتك اليوم؟' :
-                'Hello! I am Omni AI assistant. How can I help you today with specific, accurate information?';
-            
-            addMessage('assistant', welcomeMessage);
-            chatState.messages.push({
-                role: 'assistant',
-                content: welcomeMessage,
-                timestamp: new Date().toISOString()
-            });
-        }
-
-        function loadChatHistory() {
-            try {
-                const history = localStorage.getItem('omni-ai-chat-history');
-                return history ? JSON.parse(history) : [];
-            } catch (e) {
-                console.error('Failed to load chat history', e);
-                return [];
-            }
-        }
-
-        function saveChatToHistory() {
-            if (chatState.messages.length === 0) return;
-            
-            const chatTitle = chatState.messages.find(m => m.role === 'user')?.content || 'New Chat';
-            const chatPreview = chatTitle.length > 30 ? chatTitle.substring(0, 30) + '...' : chatTitle;
-            
-            const chatEntry = {
-                id: chatState.currentChatId,
-                title: chatPreview,
-                timestamp: new Date().toISOString(),
-                messages: [...chatState.messages]
-            };
-            
-            // Remove existing chat with same ID if exists
-            chatState.history = chatState.history.filter(chat => chat.id !== chatState.currentChatId);
-            
-            // Add new chat to history (limit to 20 most recent)
-            chatState.history.unshift(chatEntry);
-            chatState.history = chatState.history.slice(0, 20);
-            
-            // Save to localStorage
-            localStorage.setItem('omni-ai-chat-history', JSON.stringify(chatState.history));
-        }
-
-        function renderChatHistory() {
-            chatHistory.innerHTML = '';
-            
-            chatState.history.forEach(chat => {
-                const chatItem = document.createElement('div');
-                chatItem.className = 'chat-history-item px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition';
-                chatItem.innerHTML = `
-                    <p class="truncate">${chat.title}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">${formatDate(chat.timestamp)}</p>
-                `;
-                
-                chatItem.addEventListener('click', () => loadChat(chat.id));
-                chatHistory.appendChild(chatItem);
-            });
-            
-            // Add "New Chat" item at the top
-            const newChatItem = document.createElement('div');
-            newChatItem.className = 'chat-history-item px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition';
-            newChatItem.innerHTML = `
-                <p class="truncate">${translations[currentLanguage].gettingStarted}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">${formatDate(new Date().toISOString())}</p>
-            `;
-            
-            newChatItem.addEventListener('click', startNewChat);
-            chatHistory.insertBefore(newChatItem, chatHistory.firstChild);
-        }
-
-        function loadChat(chatId) {
-            const chat = chatState.history.find(c => c.id === chatId);
-            if (!chat) return;
-            
-            // Save current chat if not empty
-            if (chatState.messages.length > 0 && chatState.currentChatId !== chatId) {
-                saveChatToHistory();
-            }
-            
-            // Load the selected chat
-            chatState.currentChatId = chatId;
-            chatState.messages = [...chat.messages];
-            
-            // Render messages
-            chatMessages.innerHTML = '';
-            chat.messages.forEach(msg => addMessage(msg.role, msg.content));
-            
-            // Hide welcome message and prompts
-            welcomeMessage.classList.add('hidden');
-            promptContainer.classList.add('hidden');
-            
-            // Scroll to bottom
-            scrollToBottom();
-            
-            // Update chat history UI
-            renderChatHistory();
-            
-            // Focus on input
-            userInput.focus();
-        }
-
-        function formatDate(isoString) {
-            const date = new Date(isoString);
-            const now = new Date();
-            const diffInHours = Math.abs(now - date) / 36e5;
-            
-            if (diffInHours < 1) {
-                return currentLanguage === 'ar' ? 'الآن' : 'Just now';
-            } else if (diffInHours < 24) {
-                return currentLanguage === 'ar' ? 
-                    `${Math.floor(diffInHours)} ساعة مضت` : 
-                    `${Math.floor(diffInHours)} hours ago`;
+            if (currentLanguage === 'ar') {
+                addMessage('assistant', 'مرحبًا! أنا مساعد الذكاء الاصطناعي أومني. كيف يمكنني مساعدتك اليوم؟');
             } else {
-                return date.toLocaleDateString(currentLanguage, {
-                    month: 'short',
-                    day: 'numeric'
-                });
+                addMessage('assistant', 'Hello! I am Omni AI assistant. How can I help you today with specific, accurate information?');
             }
         }
+
+        // Initial setup
+        userInput.focus();
+        addWelcomeMessage();
+    </script>
+
+    <!-- API Integration Section (Replace with your actual API code) -->
+    <script>
+        /*
+        // Example API integration (replace with your actual implementation)
+        async function callOmniAI(message) {
+            try {
+                const response = await fetch('YOUR_API_ENDPOINT', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer YOUR_API_KEY'
+                    },
+                    body: JSON.stringify({
+                        prompt: message,
+                        max_tokens: 150,
+                        temperature: 0.7
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+                
+                const data = await response.json();
+                return data.choices[0].text.trim();
+            } catch (error) {
+                console.error('Error calling Omni AI API:', error);
+                return "I'm sorry, I encountered an error processing your request.";
+            }
+        }
+        
+        // Then modify the simulateAIResponse function to use the real API:
+        async function getAIResponse(message, typingId) {
+            try {
+                const response = await callOmniAI(message);
+                removeTypingIndicator(typingId);
+                addMessage('assistant', response);
+                scrollToBottom();
+            } catch (error) {
+                removeTypingIndicator(typingId);
+                addMessage('assistant', "I'm having trouble connecting to the Omni AI service. Please try again later.");
+                scrollToBottom();
+            }
+        }
+        */
     </script>
 </body>
 </html>
